@@ -30,3 +30,26 @@ async def get_top_posters(subreddit_name: str, days: int = 30, top_n: int = 60, 
 
     top_authors = Counter(authors).most_common(top_n)
     return top_authors
+
+async def get_post_count_within_timeperiod(subreddit_name: str, minutes: int = 1440, limit: int = 1000):
+    """
+    Fetch count of posts made in the last X minutes for a subreddit.
+    Default = last 24 hours (1440 minutes).
+    """
+    after_time = datetime.now(timezone.utc) - timedelta(minutes=minutes)
+    post_count = 0
+
+    async with asyncpraw.Reddit(
+        client_id=os.getenv("REDDIT_CLIENT_ID"),
+        client_secret=os.getenv("REDDIT_CLIENT_SECRET"),
+        username=os.getenv("REDDIT_USERNAME"),
+        password=os.getenv("REDDIT_PASSWORD"),
+        user_agent=USER_AGENT,
+    ) as reddit:
+
+        subreddit = await reddit.subreddit(subreddit_name)
+        async for submission in subreddit.new(limit=limit):
+            if submission.created_utc >= after_time.timestamp():
+                post_count += 1
+
+    return post_count
